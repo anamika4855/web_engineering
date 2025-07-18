@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Algorithm Visualizer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      color: #222;
+      text-align: center;
+      padding: 20px;
+      transition: background-color 0.4s ease, color 0.4s ease;
+    }
+
+    body.dark {
+      background-color: #121212;
+      color: #eee;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+      padding: 25px;
+      transition: background-color 0.4s ease;
+    }
+
+    body.dark .container {
+      background-color: #1e1e1e;
+    }
+
+    h1 {
+      margin-bottom: 25px;
+    }
+
+    select, input, button {
+      padding: 12px 22px;
+      font-size: 16px;
+      margin: 10px 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    select {
+      width: 240px;
+    }
+
+    button {
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .next-button {
+      background-color: #28a745;
+    }
+
+    .next-button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .toggle-dark-mode {
+      float: right;
+      background-color: #343a40;
+      color: white;
+      margin-bottom: 15px;
+    }
+
+    .array-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .array-element {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #6c63ff;
+      color: white;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      box-shadow: 0 4px 10px rgba(108, 99, 255, 0.5);
+      transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .highlight {
+      background-color: #ff6f61 !important;
+      transform: scale(1.15);
+      box-shadow: 0 4px 12px rgba(255, 111, 97, 0.8);
+    }
+
+    #result {
+      font-size: 18px;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="toggle-dark-mode" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+    <h1>Algorithm Visualization</h1>
+
+    <div class="array-container" id="array-container"></div>
+
+    <select id="algorithm-select">
+      <option value="linear-search">Linear Search</option>
+      <option value="selection-sort">Selection Sort</option>
+      <option value="merge-sort">Merge Sort</option>
+      <option value="quick-sort">Quick Sort</option>
+      <option value="dfs">Depth First Search (DFS)</option>
+    </select>
+
+    <input type="number" id="search-value" placeholder="Enter target value to search"/>
+    <button id="start-search">Start</button>
+
+    <div id="result"></div>
+
+    <button id="next-button" class="next-button" disabled>Next</button>
+  </div>
+
+  <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+    }
+
+    const arrayContainer = document.getElementById("array-container");
+    const resultDiv = document.getElementById("result");
+    const nextButton = document.getElementById("next-button");
+    const searchInput = document.getElementById("search-value");
+    const algorithmSelect = document.getElementById("algorithm-select");
+
+    let data = [];
+    let steps = [];
+    let currentStep = 0;
+
+    function renderArray(arr, highlightIndices = []) {
+      arrayContainer.innerHTML = "";
+      arr.forEach((value, index) => {
+        const div = document.createElement("div");
+        div.classList.add("array-element");
+        if (highlightIndices.includes(index)) {
+          div.classList.add("highlight");
+        }
+        div.textContent = value;
+        arrayContainer.appendChild(div);
+      });
+    }
+
+    function generateArray(size = 10) {
+      data = Array.from({ length: size }, () => Math.floor(Math.random() * 100));
+      renderArray(data);
+    }
+
+    function showNextStep() {
+      if (currentStep < steps.length) {
+        const { arr, highlights } = steps[currentStep];
+        renderArray(arr, highlights);
+        currentStep++;
+        if (currentStep === steps.length) {
+          nextButton.disabled = true;
+        }
+      }
+    }
+
+    function linearSearch(arr, target) {
+      steps = [];
+      for (let i = 0; i < arr.length; i++) {
+        steps.push({ arr: [...arr], highlights: [i] });
+        if (arr[i] === target) break;
+      }
+    }
+
+    function selectionSort(arr) {
+      steps = [];
+      let a = [...arr];
+      for (let i = 0; i < a.length; i++) {
+        let minIdx = i;
+        for (let j = i + 1; j < a.length; j++) {
+          if (a[j] < a[minIdx]) minIdx = j;
+          steps.push({ arr: [...a], highlights: [j, minIdx] });
+        }
+        [a[i], a[minIdx]] = [a[minIdx], a[i]];
+        steps.push({ arr: [...a], highlights: [i, minIdx] });
+      }
+    }
+
+    function mergeSort(arr) {
+      steps = [];
+      function mergeSortRecursive(a, l, r) {
+        if (l >= r) return;
+        const m = Math.floor((l + r) / 2);
+        mergeSortRecursive(a, l, m);
+        mergeSortRecursive(a, m + 1, r);
+        let merged = [];
+        let i = l, j = m + 1;
+        while (i <= m && j <= r) {
+          merged.push(a[i] <= a[j] ? a[i++] : a[j++]);
+        }
+        while (i <= m) merged.push(a[i++]);
+        while (j <= r) merged.push(a[j++]);
+        for (let k = l; k <= r; k++) {
+          a[k] = merged[k - l];
+          steps.push({ arr: [...a], highlights: [k] });
+        }
+      }
+      let temp = [...arr];
+      mergeSortRecursive(temp, 0, temp.length - 1);
+    }
+
+    function quickSort(arr) {
+      steps = [];
+      let a = [...arr];
+
+      function partition(low, high) {
+        let pivot = a[high];
+        let i = low;
+        for (let j = low; j < high; j++) {
+          if (a[j] < pivot) {
+            [a[i], a[j]] = [a[j], a[i]];
+            steps.push({ arr: [...a], highlights: [i, j] });
+            i++;
+          }
+        }
+        [a[i], a[high]] = [a[high], a[i]];
+        steps.push({ arr: [...a], highlights: [i, high] });
+        return i;
+      }
+
+      function quickSortRecursive(low, high) {
+        if (low < high) {
+          let pi = partition(low, high);
+          quickSortRecursive(low, pi - 1);
+          quickSortRecursive(pi + 1, high);
+        }
+      }
+
+      quickSortRecursive(0, a.length - 1);
+    }
+
+    function dfsTraversal(arr) {
+      steps = [];
+      let visited = [];
+      function dfs(i, visitedSet) {
+        if (i >= arr.length || visitedSet.has(i)) return;
+        visitedSet.add(i);
+        visited.push(arr[i]);
+        steps.push({ arr: visited.slice(), highlights: [visited.length - 1] });
+        dfs(2 * i + 1, visitedSet);
+        dfs(2 * i + 2, visitedSet);
+      }
+      dfs(0, new Set());
+    }
+
+    document.getElementById("start-search").addEventListener("click", () => {
+      const selectedAlgo = algorithmSelect.value;
+      const target = parseInt(searchInput.value);
+      currentStep = 0;
+
+      if (selectedAlgo === "linear-search") {
+        linearSearch(data, target);
+      } else if (selectedAlgo === "selection-sort") {
+        selectionSort(data);
+      } else if (selectedAlgo === "merge-sort") {
+        mergeSort(data);
+      } else if (selectedAlgo === "quick-sort") {
+        quickSort(data);
+      } else if (selectedAlgo === "dfs") {
+        dfsTraversal(data);
+      }
+
+      nextButton.disabled = false;
+      showNextStep();
+    });
+
+    nextButton.addEventListener("click", showNextStep);
+
+    generateArray();
+  </script>
+</body>
+</html>

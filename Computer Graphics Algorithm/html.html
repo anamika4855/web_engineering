@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Midpoint Line Algorithm Visualization</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f0f2f5;
+    text-align: center;
+    padding: 20px;
+  }
+
+  canvas {
+    border: 1px solid #444;
+    background: #fff;
+    margin-top: 15px;
+  }
+
+  .controls {
+    margin-bottom: 15px;
+  }
+
+  input[type=number] {
+    width: 60px;
+    padding: 6px;
+    margin: 0 8px;
+    font-size: 16px;
+  }
+
+  button {
+    padding: 8px 16px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 10px;
+  }
+
+  #info {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    min-height: 30px;
+  }
+
+  .pixel {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    margin: 1px;
+    border-radius: 3px;
+    background-color: #6c63ff;
+    transition: background-color 0.3s ease;
+  }
+
+  .highlight {
+    background-color: #ff6f61 !important;
+  }
+</style>
+</head>
+<body>
+
+<h1>Midpoint Line Algorithm Visualization</h1>
+
+<div class="controls">
+  <label>Start (x0, y0): 
+    <input type="number" id="x0" value="2" min="0" max="49" />
+    <input type="number" id="y0" value="10" min="0" max="49" />
+  </label>
+
+  <label>End (x1, y1): 
+    <input type="number" id="x1" value="40" min="0" max="49" />
+    <input type="number" id="y1" value="20" min="0" max="49" />
+  </label>
+
+  <button id="startBtn">Start Visualization</button>
+  <button id="nextBtn" disabled>Next Step</button>
+</div>
+
+<canvas id="canvas" width="500" height="500"></canvas>
+
+<div id="info"></div>
+
+<script>
+  // Canvas setup
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const cellSize = 10; // Each pixel cell size
+  const gridWidth = 50;
+  const gridHeight = 50;
+
+  const x0Input = document.getElementById('x0');
+  const y0Input = document.getElementById('y0');
+  const x1Input = document.getElementById('x1');
+  const y1Input = document.getElementById('y1');
+  const startBtn = document.getElementById('startBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const infoDiv = document.getElementById('info');
+
+  // Variables to hold the algorithm state
+  let steps = [];
+  let currentStep = 0;
+
+  // Draw grid background
+  function drawGrid() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#ccc';
+    for(let x = 0; x <= gridWidth; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * cellSize, 0);
+      ctx.lineTo(x * cellSize, gridHeight * cellSize);
+      ctx.stroke();
+    }
+    for(let y = 0; y <= gridHeight; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * cellSize);
+      ctx.lineTo(gridWidth * cellSize, y * cellSize);
+      ctx.stroke();
+    }
+  }
+
+  // Draw a single pixel block
+  function drawPixel(x, y, color = '#6c63ff') {
+    ctx.fillStyle = color;
+    ctx.fillRect(x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+  }
+
+  // Highlight pixel candidates in red
+  function highlightPixel(x, y) {
+    drawPixel(x, y, '#ff6f61');
+  }
+
+  // Draw all plotted pixels so far (blue)
+  function drawPlottedPixels(plottedPixels) {
+    plottedPixels.forEach(p => drawPixel(p[0], p[1], '#6c63ff'));
+  }
+
+  // Midpoint line algorithm (only for slope between 0 and 1 and x0 < x1)
+  // Returns array of steps with {x, y, d, nextPixelOptions}
+  function computeMidpointLine(x0, y0, x1, y1) {
+    let dx = x1 - x0;
+    let dy = y1 - y0;
+    let d = dy - dx / 2;
+    let x = x0;
+    let y = y0;
+
+    let resultSteps = [];
+    let plottedPixels = [];
+
+    // First pixel
+    plottedPixels.push([x, y]);
+    resultSteps.push({
+      x, y, d,
+      plottedPixels: [...plottedPixels],
+      nextPixelOptions: [] // At start no next candidates
+    });
+
+    while (x < x1) {
+      x++;
+      if (d < 0) {
+        // Choose pixel (x, y)
+        d += dy;
+        resultSteps.push({
+          x, y, d,
+          plottedPixels: [...plottedPixels, [x, y]],
+          nextPixelOptions: [[x, y], [x, y+1]] // Midpoint between (x,y) and (x,y+1)
+        });
+        plottedPixels.push([x, y]);
+      } else {
+        // Choose pixel (x, y+1)
+        y++;
+        d += dy - dx;
+        resultSteps.push({
+          x, y, d,
+          plottedPixels: [...plottedPixels, [x, y]],
+          nextPixelOptions: [[x, y], [x, y-1]] // Midpoint between (x,y) and (x,y-1)
+        });
+        plottedPixels.push([x, y]);
+      }
+    }
+    return resultSteps;
+  }
+
+  // Render a single step
+  function renderStep(step) {
+    drawGrid();
+
+    // Draw all plotted pixels in blue
+    drawPlottedPixels(step.plottedPixels);
+
+    // Highlight current pixel in red
+    highlightPixel(step.x, step.y);
+
+    // Show next pixel candidates (optional, can be removed)
+    // We won’t highlight nextPixelOptions here to avoid confusion.
+
+    infoDiv.innerHTML = `Current pixel: (${step.x}, ${step.y})<br>
+      Decision parameter d = ${step.d.toFixed(2)}`;
+  }
+
+  // Controls
+  startBtn.addEventListener('click', () => {
+    let x0 = parseInt(x0Input.value);
+    let y0 = parseInt(y0Input.value);
+    let x1 = parseInt(x1Input.value);
+    let y1 = parseInt(y1Input.value);
+
+    // Simple validation
+    if (x0 >= x1) {
+      alert('For this demo, please ensure x0 < x1');
+      return;
+    }
+    if (y1 < y0) {
+      alert('For this demo, please ensure y1 >= y0 (slope >= 0)');
+      return;
+    }
+    if (x0 < 0 || x1 >= gridWidth || y0 < 0 || y1 >= gridHeight) {
+      alert('Points must be within grid limits (0 to 49)');
+      return;
+    }
+
+    steps = computeMidpointLine(x0, y0, x1, y1);
+    currentStep = 0;
+    renderStep(steps[currentStep]);
+    nextBtn.disabled = false;
+    infoDiv.innerHTML += '<br>Click "Next Step" to proceed.';
+  });
+
+  nextBtn.addEventListener('click', () => {
+    currentStep++;
+    if (currentStep >= steps.length) {
+      infoDiv.innerHTML = 'Line drawing complete!';
+      nextBtn.disabled = true;
+      return;
+    }
+    renderStep(steps[currentStep]);
+  });
+
+  // Initial draw
+  drawGrid();
+</script>
+
+</body>
+</html>
